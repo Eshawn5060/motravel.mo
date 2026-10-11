@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2E6E8E">
+<title>澳門世遺·美食打卡地圖</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%232E6E8E'/%3E%3Cpath d='M8 5h8v4H8zM5 10h14v9H5z' fill='%23F5EFE4'/%3E%3Cpath d='M7 13h3v4H7zM13 13h3v4h-3z' fill='%23E8A23A'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root{
+  --bg:#F5EFE4;
+  --card:#FFFFFF;
+  --ink:#28302E;
+  --muted:#6E7A74;
+  --line:#E6DBC7;
+  --blue:#2E6E8E;
+  --blue-d:#1F4E5F;
+  --terra:#C4572E;
+  --terra-l:#F2DCCE;
+  --gold:#E8A23A;
+  --green:#4E7D5A;
+  --red:#C04A3C;
+  --casino:#7A5BA0;
+  --shadow:0 6px 22px rgba(40,48,46,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:"Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;
+  padding-bottom:76px;
+}
+h1,h2,h3,.serif{font-family:"Noto Serif SC",Georgia,"Songti SC",serif}
+img{max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea{font-family:inherit;font-size:16px;color:var(--ink)}
+svg{display:block}
+
+/* ===== 頂欄 ===== */
+header{
+  position:sticky;top:0;z-index:20;
+  background:linear-gradient(135deg,var(--blue) 0%,var(--blue-d) 100%);
+  color:#FDF8EF;padding:12px 14px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:var(--shadow);
+}
+header .logo{flex:1;min-width:0}
+header .logo .t1{font-family:"Noto Serif SC",serif;font-weight:900;font-size:19px;letter-spacing:.5px}
+header .logo .t2{font-size:11px;opacity:.85;letter-spacing:1.5px}
+.btn-bus{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#FDF8EF;color:var(--blue-d);
+  font-weight:700;font-size:13px;padding:8px 12px;border-radius:999px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);white-space:nowrap;
+}
+.btn-bus:hover{background:#fff}
+
+/* ===== 底部導航 ===== */
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:var(--card);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;align-items:center;
+  height:64px;padding-bottom:env(safe-area-inset-bottom);
+}
+.bottom-nav a{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11px;color:var(--muted);padding:8px 0;font-weight:500;
+}
+.bottom-nav a.on{color:var(--blue)}
+.bottom-nav a svg{width:24px;height:24px}
+
+/* ===== 主區 ===== */
+main{max-width:540px;margin:0 auto;padding:0 0 8px}
+.view{display:none;animation:fade .3s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ===== 首頁 ===== */
+.hero{
+  margin:12px 14px 6px;padding:18px 16px;border-radius:16px;color:#FDF8EF;
+  background:linear-gradient(140deg,#2E6E8E,#1F4E5F 70%);
+  position:relative;overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,162,58,.35),transparent 60%);
+}
+.hero h1{font-size:24px;font-weight:900;margin-bottom:4px}
+.hero p{font-size:13px;opacity:.9}
+.hero .stat{display:flex;gap:18px;margin-top:12px;font-size:12px}
+.hero .stat b{font-family:"Noto Serif SC",serif;font-size:18px;color:var(--gold);display:block}
+
+.search{display:flex;align-items:center;gap:8px;margin:10px 14px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.search svg{width:18px;height:18px;color:var(--muted)}
+.search input{flex:1;border:none;outline:none;background:none;min-width:0}
+.search input::placeholder{color:var(--muted)}
+
+.tabs{display:flex;gap:8px;margin:6px 14px 12px}
+.tabs button{flex:1;padding:8px 0;border-radius:10px;font-size:13px;font-weight:700;color:var(--muted);background:var(--card);border:1px solid var(--line)}
+.tabs button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+.sec-title{display:flex;align-items:center;gap:8px;margin:18px 14px 10px;font-size:15px;font-weight:700;color:var(--blue-d)}
+.sec-title::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--terra)}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px}
+@media(min-width:480px){.cards{grid-template-columns:1fr 1fr 1fr}}
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 2px 8px rgba(40,48,46,.04);
+}
+.card .thumb{height:96px;background:linear-gradient(140deg,var(--terra-l),#EFE3CE);position:relative;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card .thumb svg{width:40px;height:40px;color:var(--terra);opacity:.85}
+.card .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.card .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,36,32,.18),transparent 50%)}
+.card .thumb .badge{z-index:1}
+.card .badge{position:absolute;top:8px;left:8px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;color:#fff}
+.badge.heritage{background:var(--blue)}
+.badge.food{background:var(--terra)}
+.badge.casino{background:var(--casino)}
+.card .body{padding:10px;display:flex;flex-direction:column;gap:5px;flex:1}
+.card .name{font-family:"Noto Serif SC",serif;font-weight:700;font-size:15px;line-height:1.3}
+.card .meta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.card .stars{display:flex;gap:1px}
+.card .stars svg{width:13px;height:13px}
+.card .foot{margin-top:auto;font-size:11px;color:var(--blue-d);font-weight:700;display:flex;align-items:center;gap:4px}
+
+/* ===== 詳情頁 ===== */
+.detail-top{position:relative;min-height:150px;background:linear-gradient(140deg,var(--blue),var(--blue-d));color:#FDF8EF;display:flex;align-items:flex-end;padding:56px 14px 18px;overflow:hidden}
+.detail-top::after{content:"";position:absolute;right:-30px;bottom:-50px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(232,162,58,.4),transparent 60%)}
+.btn-back{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.22);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;z-index:2}
+.btn-back svg{width:20px;height:20px;color:#fff}
+.detail-top h1{font-size:24px;font-weight:900;z-index:1}
+.detail-top .sub{font-size:12px;opacity:.9;z-index:1}
+
+.detail{background:var(--card);margin-top:-20px;border-radius:20px 20px 0 0;padding:18px 16px 30px;position:relative}
+.row{display:flex;gap:10px;margin-bottom:14px}
+.stat-box{flex:1;background:var(--bg);border-radius:12px;padding:12px;text-align:center}
+.stat-box .k{font-size:11px;color:var(--muted)}
+.stat-box .v{font-family:"Noto Serif SC",serif;font-weight:700;font-size:16px;margin-top:2px}
+.stat-box .v.gold{color:var(--gold)}
+.stat-box .v.lv-hi{color:var(--red)}.stat-box .v.lv-mid{color:var(--gold)}.stat-box .v.lv-lo{color:var(--green)}
+
+.rec{background:var(--terra-l);border-radius:12px;padding:12px 14px;margin:14px 0;display:flex;gap:10px;align-items:flex-start}
+.rec svg{width:20px;height:20px;color:var(--terra);flex-shrink:0;margin-top:2px}
+.rec .t{font-weight:700;color:var(--terra);font-size:13px}
+.rec .d{font-size:13px;color:var(--ink);margin-top:2px}
+
+.chart-box{background:var(--bg);border-radius:12px;padding:12px;margin:14px 0}
+.chart-box .ct{font-size:13px;font-weight:700;color:var(--blue-d);display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.chart-box .ct svg{width:16px;height:16px}
+#trafficChart{width:100%;height:220px}
+
+.h2{font-size:15px;font-weight:700;color:var(--blue-d);display:flex;align-items:center;gap:6px;margin:20px 0 10px}
+.h2 svg{width:18px;height:18px;color:var(--terra)}
+
+.spots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.spot{background:var(--bg);border-radius:10px;padding:10px;display:flex;gap:8px;align-items:center}
+.spot svg{width:18px;height:18px;color:var(--terra);flex-shrink:0}
+.spot .n{font-size:12.5px;font-weight:500;line-height:1.35}
+
+/* 評分 */
+.rate-area{background:var(--bg);border-radius:12px;padding:14px;margin-top:6px}
+.rate-area .hint{font-size:12px;color:var(--muted);margin-bottom:8px}
+.rate-stars{display:flex;gap:6px;margin-bottom:10px}
+.rate-stars .st{cursor:pointer;width:34px;height:34px}
+.rate-stars .st svg{width:34px;height:34px;transition:transform .15s}
+.rate-stars .st:hover svg{transform:scale(1.12)}
+.rate-stars .st svg .in{fill:var(--gold);stroke:var(--gold)}
+.rate-stars .st svg .in.off{fill:#E8E0D0;stroke:#D8CDB8}
+.rate-avg{font-size:13px;color:var(--muted)}
+.rate-avg b{color:var(--gold);font-size:18px}
+
+/* 評論 */
+.comments{display:flex;flex-direction:column;gap:10px}
+.cmt{background:var(--bg);border-radius:12px;padding:12px}
+.cmt .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.cmt .who{font-weight:700;font-size:13px}
+.cmt .stars{display:flex;gap:1px}
+.cmt .stars svg{width:12px;height:12px}
+.cmt .txt{font-size:13px}
+.cmt .when{font-size:11px;color:var(--muted);margin-top:4px}
+.cmt-form{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.cmt-form input,.cmt-form textarea{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;resize:none}
+.cmt-form textarea{min-height:64px}
+.cmt-form .sub{background:var(--blue);color:#fff;font-weight:700;border-radius:10px;padding:11px;font-size:14px}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:20px 0}
+
+/* ===== 地圖頁 ===== */
+.map-head{padding:14px 14px 0}
+.map-head h1{font-size:20px;color:var(--blue-d);font-family:"Noto Serif SC",serif;font-weight:900}
+.map-head p{font-size:12px;color:var(--muted);margin-top:2px}
+#map{height:62vh;margin:12px 14px;border-radius:16px;overflow:hidden;border:1px solid var(--line);z-index:1}
+.legend{display:flex;gap:16px;padding:4px 16px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.legend .l-heri i{background:var(--blue)}
+.legend .l-food i{background:var(--terra)}
+.legend .l-casino i{background:var(--casino)}
+.leaflet-popup-content{font-family:"Noto Sans SC",sans-serif;line-height:1.5}
+.leaflet-popup-content .pn{font-weight:700;font-size:14px;font-family:"Noto Serif SC",serif}
+.leaflet-popup-content .pm{font-size:11px;color:var(--muted)}
+.leaflet-popup-content a{display:inline-block;margin-top:6px;color:var(--blue);font-weight:700;font-size:12px}
+
+/* Leaflet 圖標自定義 */
+.site-pin{background:none;border:none}
+.site-pin .pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+.site-pin .pin svg{transform:rotate(45deg);width:12px;height:12px;color:#fff}
+
+footer{text-align:center;color:var(--muted);font-size:11px;padding:24px 16px 8px;line-height:1.8}
+footer .note{max-width:520px;margin:0 auto;background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:10px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(31,78,95,.95);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;z-index:40;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="t1">澳門世遺·美食打卡</div>
+    <div class="t2">人潮 · 時機 · 網紅打卡點</div>
+  </div>
+  <button class="btn-bus" onclick="openBus()" aria-label="開啟巴士報站網頁版">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M8 21h8M9 17v4M15 17v4M5 11h14"/></svg>
+    巴士報站
+  </button>
+</header>
+
+<main>
+  <!-- ===== 首頁 ===== -->
+  <section class="view on" id="view-home">
+    <div class="hero">
+      <h1>澳門歷史城區·吃喝玩樂</h1>
+      <p>世遺景點與人氣餐廳的人潮情報、最佳到訪時機與網紅打卡點</p>
+      <div class="stat">
+        <div><b id="stPlace">14</b>個地點</div>
+        <div><b id="stHeri">8</b>世遺景點</div>
+        <div><b id="stFood">6</b>人氣餐廳</div>
+        <div><b id="stCasino">1</b>娛樂場</div>
+      </div>
+    </div>
+
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="searchInput" placeholder="搜尋地點、區域或美食…" oninput="renderHome()">
+    </div>
+
+    <div class="tabs">
+      <button class="on" data-tab="all" onclick="setTab('all')">全部</button>
+      <button data-tab="heritage" onclick="setTab('heritage')">世遺景點</button>
+      <button data-tab="food" onclick="setTab('food')">人氣餐廳</button>
+      <button data-tab="casino" onclick="setTab('casino')">酒店娛樂場</button>
+    </div>
+
+    <div class="sec-title">推薦地點</div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <!-- ===== 詳情頁 ===== -->
+  <section class="view" id="view-detail"></section>
+
+  <!-- ===== 地圖頁 ===== -->
+  <section class="view" id="view-map">
+    <div class="map-head">
+      <h1>景點地圖</h1>
+      <p>點擊圖釘查看地點與人潮資訊，可縮放移動</p>
+    </div>
+    <div id="map"></div>
+    <div class="legend">
+      <span class="l-heri"><i></i>世遺景點</span>
+      <span class="l-food"><i></i>人氣餐廳</span>
+      <span class="l-casino"><i></i>酒店娛樂場</span>
+    </div>
+  </section>
+</main>
+
+<div class="bottom-nav">
+  <a id="nav-home" href="#/home" class="on">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z"/></svg>
+    探索
+  </a>
+  <a id="nav-map" href="#/map">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 3.5 5v16L9 19l6 2 5.5-2V3L15 5 9 3z"/><path d="M9 3v16M15 5v16"/></svg>
+    地圖
+  </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 資料（人潮為典型日參考值，非實時） ===== */
+const PLACES = [
+  {id:"paulinho",type:"heritage",name:"大三巴牌坊",area:"澳門半島",desc:"澳門地標，昔日聖保祿教堂正面前壁。石階與牌坊下是全天最熱鬧的觀光區。",
+   lv:"高",best:"清晨 8 點前或傍晚日落後，避開旅行團 10–17 點高峰",rec:[6,8,18,20],
+   traffic:[5,4,4,4,5,8,14,25,42,60,78,88,90,86,80,74,70,64,52,38,28,20,14,8],
+   spots:["牌坊正面石階","牌坊側面小巷","大三巴街仰望視角"],coord:[22.1975,113.5410],img:"assets/san-daba.jpg"},
+  {id:"senado",type:"heritage",name:"議事亭前地",area:"澳門半島",desc:"葡式碎石地面的廣場，被粉黃色葡式建築包圍，是澳門歷史城區的心臟。",
+   lv:"高",best:"平日早上 9–11 點人流較少，傍晚燈光亮起最浪漫",rec:[9,11,18,20],
+   traffic:[4,3,3,3,5,9,16,28,45,60,75,85,88,84,78,72,66,58,46,34,25,18,12,7],
+   spots:["中央噴水池","碎石波浪地面","仁慈堂側拱廊"],coord:[22.1935,113.5395],img:"assets/senate-square.jpg"},
+  {id:"fortress",type:"heritage",name:"大炮台",area:"澳門半島",desc:"建於 1617 年的軍事要塞，可俯瞰整個舊城區與新葡京天際線。",
+   lv:"中",best:"下午 4–6 點登台看日落，人潮已散",rec:[16,18],
+   traffic:[3,3,3,3,4,7,12,20,30,42,55,65,68,64,58,55,50,44,34,24,16,12,8,5],
+   spots:["城牆炮位","炮台俯瞰天台","入口石梯"],coord:[22.1968,113.5422],img:"assets/monte-fort.jpg"},
+  {id:"domingos",type:"heritage",name:"玫瑰堂",area:"澳門半島",desc:"粉黃色巴洛克立面教堂，內部有大量葡式雕塑與彩繪玻璃。",
+   lv:"中",best:"平日中午時段相對清靜",rec:[11,14],
+   traffic:[3,2,2,2,4,7,12,20,30,40,50,58,60,56,50,46,42,36,28,20,14,10,7,4],
+   spots:["巴洛克立面","教堂前窄巷","對街拍全景"],coord:[22.1944,113.5402],img:"assets/st-domingos.jpg"},
+  {id:"ama",type:"heritage",name:"媽閣廟",area:"澳門半島",desc:"澳門最古老廟宇，供奉海上守護神媽祖，澳門(Macao)之名即源於此。",
+   lv:"中",best:"上午前往，廟內石階清幽",rec:[8,11],
+   traffic:[4,4,4,4,6,10,18,28,40,50,60,62,58,52,48,44,40,34,26,18,12,9,6,5],
+   spots:["正門石獅","弘仁殿前庭","山海關石門"],coord:[22.1859,113.5291],img:"assets/a-ma-temple.jpg"},
+  {id:"guia",type:"heritage",name:"東望洋燈塔",area:"澳門半島",desc:"中國沿海最古老燈塔之一，塔頂俯瞰澳門半島全景，日出與日落皆絕美。",
+   lv:"中",best:"上午或日落前 1 小時上山",rec:[8,10,17,19],
+   traffic:[2,2,2,2,3,6,10,16,24,34,44,52,55,50,45,48,50,44,30,20,12,8,5,3],
+   spots:["燈塔觀景台","炮台城牆","雪地聖母小堂"],coord:[22.1953,113.5484],img:"assets/guia-lighthouse.jpg"},
+  {id:"leal",type:"heritage",name:"市政署大樓",area:"澳門半島",desc:"葡式新古典建築，前身是議事亭與民政總署大樓，內部庭院與藍白瓷磚走廊迷人。",
+   lv:"中",best:"平日上午開放時段人少",rec:[9,12],
+   traffic:[3,2,2,2,4,8,14,24,36,50,62,70,72,68,62,56,50,42,32,22,15,10,7,4],
+   spots:["前庭小花園","藍白磁磚走廊","二樓迴廊"],coord:[22.1935,113.5391],img:"assets/municipal-council.jpg"},
+  {id:"dpedro",type:"heritage",name:"崗頂劇院",area:"澳門半島",desc:"中國第一座西式劇院，綠白配色的典雅建築，是拍人像的寶地。",
+   lv:"低",best:"全日人潮少，上午光線最佳",rec:[9,11],
+   traffic:[2,2,2,2,3,6,10,18,26,36,46,54,56,52,46,42,38,32,24,18,12,8,5,3],
+   spots:["綠白外牆","劇院對面階梯","崗頂前地"],coord:[22.1909,113.5371],img:"assets/dom-pedro-theatre.jpg"},
+  {id:"stow",type:"food",name:"安德魯餅店",area:"路環",desc:"葡撻始祖，路環本店的出爐葡撻香酥濃郁，是必買手信。",
+   lv:"高",best:"平日 11 點前買，避開午後旅行團",rec:[10,12],
+   traffic:[2,2,2,2,3,6,12,22,34,46,55,58,52,44,38,42,52,58,50,38,26,16,9,5],
+   spots:["路環街頭牌坊","彩色小樓店門","安德魯花園側"],coord:[22.1152,113.5501],img:"assets/andrew-pastry.jpg"},
+  {id:"chenguangji",type:"food",name:"陳光記燒味飯店",area:"澳門半島",desc:"本地人氣燒味，黑椒燒鵝腿飯是招牌，晚市常要排隊。",
+   lv:"高",best:"下午 5 點開市就去，避開晚餐高峰",rec:[17,18],
+   traffic:[2,2,2,2,3,5,8,12,18,24,30,34,36,38,45,55,68,72,64,50,34,20,10,4],
+   spots:["霓虹招牌","燒味櫥窗","街角立面"],coord:[22.1951,113.5406],img:"assets/chen-guang-ji.jpg"},
+  {id:"wongchikei",type:"food",name:"黃枝記粥麵",area:"澳門半島",desc:"六十年老字號，雲吞竹昇麵與水蟹粥出名，位於議事亭前地旁。",
+   lv:"中",best:"午餐 12 點前或下午茶時段",rec:[11,12,15,16],
+   traffic:[2,2,2,2,3,6,12,22,34,44,52,56,54,46,40,44,54,58,52,40,28,16,8,4],
+   spots:["復古門面","竹昇麵師傅區","前地側廊"],coord:[22.1943,113.5399],img:"assets/wong-chi-kei.jpg"},
+  {id:"yishun",type:"food",name:"義順牛奶公司",area:"澳門半島",desc:"招牌雙皮奶與燉奶香滑濃郁，老字號甜品店，適合午後休息。",
+   lv:"中",best:"下午 3–5 點，人潮較散",rec:[15,17],
+   traffic:[3,2,2,2,3,6,12,20,30,40,48,52,50,44,38,40,46,48,44,36,26,16,9,5],
+   spots:["招牌大字","玻璃甜品櫃","街角座位區"],coord:[22.1940,113.5397],img:"assets/yi-shun-milk.jpg"},
+  {id:"chengchang",type:"food",name:"誠昌飯店（水蟹粥）",area:"氹仔",desc:"官也街名店，水蟹粥鮮甜綿密，搭配椒鹽大蝦與葡式小菜。",
+   lv:"中",best:"晚餐 6 點前到，避開高峰",rec:[17,18],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,38,40,46,54,66,70,62,48,32,18,10,5],
+   spots:["官也街街口","霓虹招牌","葡式街屋背景"],coord:[22.1540,113.5562],img:"assets/cheng-chang.jpg"},
+  {id:"taileiloikei",type:"food",name:"大利來記豬扒包",area:"氹仔",desc:"澳門豬扒包始祖，酥皮麵包夾豬扒，香口惹味，近官也街。",
+   lv:"高",best:"開店就去或午後 3 點，避開午晚餐",rec:[11,13,15,16],
+   traffic:[2,2,2,2,4,8,16,26,38,48,54,55,48,40,36,40,50,56,48,36,24,14,8,4],
+   spots:["紅色招牌","路邊攤位","氹仔舊城街角"],coord:[22.1527,113.5550],img:"assets/tai-lei-loi-kei.jpg"},
+  {id:"venetian",type:"casino",name:"威尼斯人",area:"路氹城",desc:"路氹大型綜合度假村，仿威尼斯水城設計，運河貢多拉與購物街，夜間燈光壯觀。",
+   lv:"高",best:"建議傍晚入場看夜景，避開午後人潮高峰",rec:[19,22],
+   traffic:[8,6,5,4,5,8,14,22,34,46,56,62,66,70,74,78,82,86,84,78,66,50,34,20],
+   spots:["大運河購物中心","貢多拉碼頭","天幕廣場"],coord:[22.1484,113.5591],img:"assets/venetian-macau.jpg"},
+  {id:"margaret",type:"food",name:"瑪格麗特蛋撻店",area:"澳門半島",desc:"蛋撻始祖之一，焦糖脆皮配蛋奶餡，近議事亭前地，配港式奶茶最佳。",
+   lv:"高",best:"上午出爐時段 10–12 點，蛋撻最新鮮",rec:[10,12],
+   traffic:[2,2,2,2,3,6,14,26,40,54,64,66,58,48,42,44,52,56,48,36,24,14,8,5],
+   spots:["招牌店面","蛋撻出爐窗口","店外街角"],coord:[22.1945,113.5393],img:"assets/margaret-egg-tart.jpg"},
+  {id:"shengji",type:"food",name:"盛記白粥",area:"澳門半島",desc:"澳門老字號粥舖，白粥綿滑，油炸鬼與腸粉配粥，早餐首選。",
+   lv:"中",best:"早餐時段 7–9 點，粥品最新鮮",rec:[7,9],
+   traffic:[2,4,10,16,26,34,40,42,38,30,24,22,20,18,20,24,28,30,28,22,16,10,6,3],
+   spots:["老式粥檔","油炸鬼攤","傳統茶餐廳座椅"],coord:[22.1940,113.5400],img:"assets/sheng-ji.jpg"},
+  {id:"rongji",type:"food",name:"榮記豬扒包",area:"澳門半島",desc:"本地豬扒包名店，酥脆豬扒夾包，份量足，午市常排隊。",
+   lv:"高",best:"午市 12 點前到，豬扒包現做",rec:[11,13],
+   traffic:[2,2,2,2,4,8,16,28,42,54,62,64,56,44,38,40,50,56,48,36,24,14,8,4],
+   spots:["紅白招牌","現煎豬扒窗口","街邊座位"],coord:[22.1950,113.5405],img:"assets/rong-ji.jpg"},
+  {id:"likangji",type:"food",name:"李康記海鮮飯店",area:"澳門半島",desc:"海鮮老字號，招牌咖喱炒蟹香辣惹味，晚市熱鬧。",
+   lv:"中",best:"晚餐 6 點前到，咖喱炒蟹是招牌",rec:[18,19],
+   traffic:[2,2,2,2,3,5,9,14,22,28,34,38,40,44,50,58,68,72,66,52,36,22,12,5],
+   spots:["海鮮魚缸","招牌字號","店內圓桌"],coord:[22.1910,113.5370],img:"assets/li-kang-ji.jpg"},
+  {id:"kalirong",type:"food",name:"咖喱榮",area:"澳門半島",desc:"街頭小食咖喱牛雜與咖喱粉麵，香濃入味，宵夜好選擇。",
+   lv:"中",best:"午晚餐之間人流較少",rec:[15,16],
+   traffic:[2,2,2,2,3,6,10,16,24,32,40,46,48,44,40,46,54,60,56,48,36,24,14,6],
+   spots:["街頭攤位","咖喱鍋爐","霓虹招牌"],coord:[22.1940,113.5395],img:"assets/ka-li-rong.jpg"},
+  {id:"avomi",type:"food",name:"亞窩咪Avo Mi",area:"澳門半島",desc:"文青風葡式小館，主打餃子與葡式小食，近大堂區。",
+   lv:"中",best:"午市或下午茶時段",rec:[12,13],
+   traffic:[2,2,2,2,3,5,10,16,24,32,42,50,52,46,38,36,42,48,46,38,28,18,10,5],
+   spots:["清新店門","餃子出品櫃","拱窗座位"],coord:[22.1935,113.5390],img:"assets/avo-mi.jpg"},
+  {id:"tasca",type:"food",name:"船屋葡國餐廳",area:"澳門半島",desc:"地道葡國菜，烤沙丁魚與葡式焗馬介休出名，下環老區。",
+   lv:"中",best:"晚餐 7 點前到，葡國菜晚市最熱",rec:[18,20],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,38,42,50,58,68,74,70,60,44,28,16,8],
+   spots:["葡式門面","沙丁魚烤架","老區街巷"],coord:[22.1865,113.5310],img:"assets/tasca-restaurant.jpg"},
+  {id:"litoral",type:"food",name:"海灣餐廳",area:"澳門半島",desc:"人氣葡國菜餐廳，海鮮飯與葡式烤雞受歡迎，近南灣。",
+   lv:"中",best:"午市 12 點前或晚市開門即到",rec:[12,13],
+   traffic:[2,2,2,2,3,5,10,16,24,34,44,52,54,48,42,44,52,60,58,50,38,24,14,7],
+   spots:["海景露台","白底招牌","葡式磁磚牆"],coord:[22.1900,113.5360],img:"assets/litoral.jpg"},
+  {id:"xinhaiji",type:"food",name:"新海記",area:"澳門半島",desc:"本地家庭聚餐之選，廣東菜與火鍋，午晚市皆旺。",
+   lv:"中",best:"晚餐高峰前到",rec:[18,19],
+   traffic:[2,2,2,2,3,6,12,18,26,34,42,48,50,46,44,48,56,64,62,54,40,26,14,6],
+   spots:["圓桌包間","燒臘櫥窗","門口招牌"],coord:[22.1930,113.5400],img:"assets/xin-hai-ji.jpg"},
+  {id:"laoguangzhou",type:"food",name:"老廣州",area:"澳門半島",desc:"粵式點心與燒味，裝潢懷舊，近議事亭前地。",
+   lv:"中",best:"午市或下午茶",rec:[12,14],
+   traffic:[2,2,2,2,3,6,12,20,30,40,50,58,60,54,46,44,50,54,48,38,26,16,9,5],
+   spots:["懷舊茶樓","點心車","手寫餐牌"],coord:[22.1940,113.5390],img:"assets/lao-guangzhou.jpg"},
+  {id:"beifangguan",type:"food",name:"北方館",area:"澳門半島",desc:"北方菜與麵食，餃子、京醬肉絲，口味正宗。",
+   lv:"低",best:"全日人少，晚餐稍多",rec:[12,13],
+   traffic:[2,2,2,2,3,5,8,12,18,24,30,36,38,34,30,30,36,42,40,34,24,16,10,5],
+   spots:["手擀麵台","餃子廚房","樸實門面"],coord:[22.2000,113.5450],img:"assets/bei-fang-guan.jpg"},
+  {id:"bitao",type:"food",name:"碧濤意國漁鄉",area:"澳門半島",desc:"意式海鮮餐廳，主打每日鮮魚與意麵，浪漫晚餐之選。",
+   lv:"中",best:"晚餐時段，海鮮當日鮮",rec:[18,20],
+   traffic:[2,2,2,2,3,5,8,12,18,24,30,34,36,42,50,58,68,74,70,58,42,26,14,6],
+   spots:["海鮮吧台","意麵廚房","典雅落地窗"],coord:[22.1870,113.5350],img:"assets/bi-tao.jpg"},
+  {id:"lecafe",type:"food",name:"Le Café",area:"澳門半島",desc:"酒店咖啡店，輕食與甜點，環境優雅，適合下午茶。",
+   lv:"中",best:"下午茶時段 15–17 點",rec:[15,17],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,38,40,44,50,56,54,48,38,26,16,9,5],
+   spots:["玻璃甜點櫃","落地窗座位","咖啡吧台"],coord:[22.1930,113.5395],img:"assets/le-cafe.jpg"},
+  {id:"churchill",type:"food",name:"丘吉爾餐廳",area:"路氹城",desc:"倫敦人酒店內英式餐廳，英倫風下午茶與點心，氛圍雅致。",
+   lv:"中",best:"午晚餐，酒店內人潮較散",rec:[12,13,18,19],
+   traffic:[3,3,3,3,4,6,10,16,22,28,34,40,42,38,36,40,48,56,54,46,34,22,13,6],
+   spots:["英倫裝潢","下午茶架","酒店大堂"],coord:[22.1420,113.5640],img:"assets/churchill.jpg"},
+  {id:"timhowan",type:"food",name:"添好運",area:"澳門半島",desc:"米其林星級港式點心，酥皮叉燒包等招牌，性價比高。",
+   lv:"高",best:"午市 11:30 前到，點心出爐",rec:[11,12],
+   traffic:[2,2,2,2,3,6,14,26,40,54,66,70,64,50,40,42,52,58,50,38,24,14,8,4],
+   spots:["出爐點心檯","酥皮叉燒包","排隊招牌"],coord:[22.1930,113.5395],img:"assets/tim-how-wan.jpg"},
+  {id:"xinhuacheng",type:"food",name:"新花城咖啡",area:"澳門半島",desc:"老派茶餐廳咖啡館，奶茶、蛋治與豬扒包，本地日常。",
+   lv:"低",best:"下午茶時段 15–16 點",rec:[15,16],
+   traffic:[2,3,5,6,8,10,14,18,22,26,30,34,34,32,34,40,44,42,36,28,20,14,9,5],
+   spots:["老式咖啡機","玻璃餐櫃","街角茶座"],coord:[22.1920,113.5380],img:"assets/xin-hua-cheng.jpg"},
+  {id:"jiuru",type:"food",name:"九如坊",area:"澳門半島",desc:"葡式家庭料理，燉菜與烤物，近崗頂前地，清靜宜人。",
+   lv:"低",best:"全日清靜，晚餐稍熱",rec:[12,13,18,19],
+   traffic:[2,2,2,2,3,4,7,10,15,20,26,32,34,30,28,30,36,42,40,34,24,15,9,5],
+   spots:["家庭餐桌","葡式磁磚","崗頂街景"],coord:[22.1909,113.5375],img:"assets/jiu-ru.jpg"},
+  {id:"yaxin",type:"food",name:"雅馨緬甸餐廳",area:"澳門半島",desc:"緬甸菜老字號，招牌椰汁雞撈麵濃郁，近三盞燈。",
+   lv:"中",best:"午市時段，招牌椰汁雞撈麵",rec:[12,14],
+   traffic:[2,2,2,2,3,6,10,16,26,38,50,58,60,52,42,40,46,50,44,34,24,16,9,5],
+   spots:["緬甸風味廚房","椰汁雞撈麵","樸實店面"],coord:[22.1990,113.5450],img:"assets/ya-xin.jpg"},
+  {id:"museum",type:"heritage",name:"澳門博物館",area:"澳門半島",desc:"坐落大炮台內的博物館，1998 年開館，以文物與場景重現澳門數百年中西文化交匯。",
+   lv:"中",best:"上午 10 點開館就到，週一休館",rec:[10,13],
+   traffic:[3,3,3,3,4,7,12,20,30,42,55,64,66,62,56,52,46,40,30,22,15,11,7,4],
+   spots:["大炮台入口廣場","博物館大堂","頂層觀景窗"],coord:[22.1966,113.5422],img:"assets/macau-museum.jpg"},
+  {id:"love-lane",type:"heritage",name:"戀愛巷",area:"澳門半島",desc:"大三巴旁一條短短斜巷，兩旁粉彩葡式建築與石板階梯，是情侶與旅人的拍照聖地。",
+   lv:"高",best:"清晨或傍晚，避開旅行團 10–17 點高峰",rec:[8,10,17,19],
+   traffic:[3,3,3,3,5,9,16,28,44,58,72,80,82,76,70,64,58,50,38,28,20,14,9,5],
+   spots:["粉彩樓牆","巷口仰望大三巴","石板斜階"],coord:[22.1966,113.5407],img:"assets/love-lane.jpg"},
+  {id:"na-tcha",type:"heritage",name:"哪吒廟",area:"澳門半島",desc:"大三巴旁的小巧廟宇，供奉哪吒，赭紅磚牆與精緻簷飾見證民間信仰。",
+   lv:"中",best:"上午前往，與大三巴連遊",rec:[9,11],
+   traffic:[3,3,3,3,4,8,14,22,32,42,52,58,56,50,44,40,36,30,24,18,12,9,6,4],
+   spots:["廟門簷飾","廟前小石階","神龕前庭"],coord:[22.1977,113.5406],img:"assets/na-tcha-temple.jpg"},
+  {id:"mercy",type:"heritage",name:"仁慈堂大樓",area:"澳門半島",desc:"議事亭前地旁的白色新古典建築，澳門最早慈善機構，內有仁慈堂博物館。",
+   lv:"中",best:"平日 11 點前，博物館開門即入",rec:[10,12],
+   traffic:[3,3,3,3,5,8,14,24,36,48,58,64,62,56,50,46,40,34,26,18,13,9,6,4],
+   spots:["新古典立面","拱形迴廊","前地側景"],coord:[22.1934,113.5389],img:"assets/mercy-hall.jpg"},
+  {id:"ama-square",type:"heritage",name:"媽閣廟前地",area:"澳門半島",desc:"媽閣廟前的海傍廣場，望向內港碼頭與海事博物館，是感受漁港起點的位置。",
+   lv:"低",best:"上午與媽閣廟連遊",rec:[9,11],
+   traffic:[3,3,3,3,4,7,12,18,26,34,42,48,46,42,38,34,30,26,20,15,11,8,5,3],
+   spots:["前地廣場","海事博物館側","海傍步道"],coord:[22.1857,113.5287],img:"assets/a-ma-square.jpg"},
+  {id:"port-office",type:"heritage",name:"港務局大樓",area:"澳門半島",desc:"摩爾式建築代表作，磚紅與白色相間的拱形迴廊，近媽閣廟，人稱摩爾兵營。",
+   lv:"低",best:"全日人少，上午光線最佳",rec:[9,11],
+   traffic:[2,2,2,2,3,6,10,16,24,32,40,46,44,40,36,32,28,24,18,14,10,7,5,3],
+   spots:["拱形迴廊","磚紅外牆","石階入口"],coord:[22.1863,113.5301],img:"assets/moorish-barracks.jpg"},
+  {id:"zheng",type:"heritage",name:"鄭家大屋",area:"澳門半島",desc:"清末思想家鄭觀應的故居，澳門現存最大的中式私宅院落之一，廳堂與花窗精緻。",
+   lv:"中",best:"上午開放時段人少",rec:[9,12],
+   traffic:[2,2,2,2,3,6,11,18,26,36,46,54,56,52,46,42,36,30,22,16,11,8,5,3],
+   spots:["前院大門","書房廊道","庭院花窗"],coord:[22.1888,113.5330],img:"assets/zheng-house.jpg"},
+  {id:"lilau",type:"heritage",name:"亞婆井前地",area:"澳門半島",desc:"澳門最古老的居住區之一，葡式街屋環繞的小廣場，傳說飲亞婆井水必不忘澳門。",
+   lv:"低",best:"全日清靜，午後斜陽最佳",rec:[15,17],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,34,30,28,32,30,26,20,14,10,7,5,3],
+   spots:["古井遺址","葡式街屋","石階小巷"],coord:[22.1885,113.5328],img:"assets/lilau-square.jpg"},
+  {id:"lourenco",type:"heritage",name:"聖老楞佐堂",area:"澳門半島",desc:"澳門三大古教堂之一，白色立面配鐘樓，堂內木雕祭壇華麗，人稱風順堂。",
+   lv:"低",best:"平日中午，開放時段人少",rec:[11,14],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,38,40,38,34,30,28,24,18,13,9,6,4,3],
+   spots:["白色立面","木雕祭壇","堂前花園"],coord:[22.1876,113.5339],img:"assets/st-lourenco.jpg"},
+  {id:"augustine",type:"heritage",name:"聖奧斯定堂",area:"澳門半島",desc:"崗頂前地的古老教堂，巴洛克立面與鐘樓，與崗頂劇院為鄰，構成歷史城區經典畫面。",
+   lv:"低",best:"上午人少，光線柔美",rec:[9,11],
+   traffic:[2,2,2,2,3,6,10,16,24,32,40,46,44,40,36,32,28,24,18,13,9,6,4,3],
+   spots:["巴洛克立面","堂前階梯","崗頂前地"],coord:[22.1908,113.5375],img:"assets/st-augustine.jpg"},
+  {id:"joseph",type:"heritage",name:"聖若瑟修院聖堂",area:"澳門半島",desc:"十八世紀巴洛克聖堂，圓頂與雙塔立面莊嚴，與大三巴同為耶穌會建築遺存。",
+   lv:"低",best:"開放時段人少",rec:[10,12],
+   traffic:[2,2,2,2,3,5,9,14,20,28,36,42,44,40,36,32,28,24,18,13,9,6,4,3],
+   spots:["巴洛克雙塔","圓頂內堂","石階入口"],coord:[22.1902,113.5368],img:"assets/st-joseph-seminary.jpg"},
+  {id:"guia-fort",type:"heritage",name:"東望洋炮台",area:"澳門半島",desc:"松山之巔的百年炮台，城牆與古炮見證澳門海防史，與燈塔同屬一處山頂建築群。",
+   lv:"中",best:"日落前 1 小時上山，人潮已散",rec:[16,19],
+   traffic:[2,2,2,2,3,6,10,16,24,34,44,50,52,48,44,42,40,36,28,20,12,8,5,3],
+   spots:["百年炮位","城牆步道","山頂瞭望"],coord:[22.1949,113.5490],img:"assets/guia-fort.jpg"},
+  {id:"snow-chapel",type:"heritage",name:"聖母雪地殿教堂",area:"澳門半島",desc:"東望洋炮台內十七世紀小教堂，白牆小堂內有珍貴的彩繪拱頂壁畫。",
+   lv:"低",best:"上午與燈塔連遊",rec:[9,11],
+   traffic:[2,2,2,2,3,6,10,15,22,30,38,42,40,36,32,28,26,22,16,12,8,6,4,3],
+   spots:["白牆小堂","彩繪拱頂","堂前平台"],coord:[22.1956,113.5482],img:"assets/snow-chapel.jpg"},
+  {id:"penha",type:"heritage",name:"主教山小堂",area:"澳門半島",desc:"西望洋山頂的聖母小堂，俯瞰南灣與澳門半島天際線，日落時分景色最美。",
+   lv:"中",best:"日落時分，景色最美",rec:[17,19],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,34,30,28,32,36,34,28,22,16,11,7,4],
+   spots:["山頂平台","聖母像花園","南灣全景"],coord:[22.1861,113.5370],img:"assets/penha-chapel.jpg"},
+  {id:"paixao",type:"heritage",name:"瘋堂斜巷",area:"澳門半島",desc:"望德堂區的彩磚斜巷，兩旁葡式樓房與文創小店，色彩繽紛的拍照熱點。",
+   lv:"中",best:"午後人少，光影好看",rec:[14,17],
+   traffic:[2,2,2,2,3,6,10,16,24,32,40,46,44,40,38,40,38,32,24,18,12,8,5,3],
+   spots:["葡式彩磚樓","斜巷階梯","文創小店牆"],coord:[22.1973,113.5456],img:"assets/paixao-lane.jpg"},
+  {id:"camoes",type:"heritage",name:"白鴿巢公園",area:"澳門半島",desc:"澳門最古老公園之一，古樹濃蔭與賈梅士石洞，是鬧市中的清幽綠洲。",
+   lv:"低",best:"上午散步清靜",rec:[9,11],
+   traffic:[2,2,2,2,3,5,9,15,22,30,38,44,46,42,40,42,40,34,26,18,12,8,5,3],
+   spots:["賈梅士石洞","噴水池","榕樹步道"],coord:[22.1993,113.5402],img:"assets/camoes-park.jpg"},
+  {id:"camoes-square",type:"heritage",name:"白鴿巢前地",area:"澳門半島",desc:"白鴿巢公園入口的小廣場，葡式碎石地面與老樹長椅，寧靜的社區角落。",
+   lv:"低",best:"全日清靜",rec:[10,12],
+   traffic:[2,2,2,2,3,5,8,12,18,24,30,34,32,30,28,30,28,24,18,13,9,6,4,3],
+   spots:["碎石前地","公園入口","老樹長椅"],coord:[22.1991,113.5405],img:"assets/camoes-square.jpg"},
+  {id:"antonio",type:"heritage",name:"聖安多尼堂",area:"澳門半島",desc:"澳門三大古教堂之一，人稱花王堂，白牆綠窗的典雅立面，近白鴿巢公園。",
+   lv:"低",best:"開放時段人少",rec:[10,12],
+   traffic:[2,2,2,2,3,5,9,14,20,28,36,42,44,40,36,32,28,24,18,13,9,6,4,3],
+   spots:["典雅立面","堂前廣場","側面小徑"],coord:[22.1988,113.5403],img:"assets/st-antonio.jpg"},
+  {id:"october5",type:"heritage",name:"十月初五街",area:"澳門半島",desc:"內港老區的百年老街，康公廟與老字號食店林立，市井煙火氣十足。",
+   lv:"中",best:"午市時段最有市井味",rec:[11,13],
+   traffic:[3,3,3,4,6,12,20,30,42,54,64,70,66,56,48,46,48,46,38,28,20,13,8,5],
+   spots:["康公廟","老字號門面","街尾騎樓"],coord:[22.1978,113.5379],img:"assets/october-fifth.jpg"},
+  {id:"felicidade",type:"heritage",name:"福隆新街",area:"澳門半島",desc:"昔日煙花地的老街，紅窗門樓與石板路懷舊迷人，如今是美食小吃集中的步行街。",
+   lv:"中",best:"傍晚燈光亮起，入夜最有味道",rec:[18,21],
+   traffic:[2,2,2,2,3,6,11,18,28,38,48,54,52,46,42,44,50,58,64,60,48,34,20,10],
+   spots:["紅窗門樓","老街牌坊","美食小館"],coord:[22.1939,113.5373],img:"assets/felicidade-street.jpg"},
+  {id:"horta-square",type:"heritage",name:"司打口",area:"澳門半島",desc:"內港的柯邦迪前地，葡式碎石廣場與舊區騎樓，見證昔日碼頭與對外貿易。",
+   lv:"低",best:"全日清靜，午後散步",rec:[15,17],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,34,30,28,32,30,26,20,14,10,7,4,3],
+   spots:["碎石廣場","噴水池","舊區騎樓"],coord:[22.1927,113.5344],img:"assets/horta-square.jpg"},
+  {id:"sao-francisco",type:"heritage",name:"加思欄花園",area:"澳門半島",desc:"加思欄炮台旁的花園，綠蔭步道與海景涼亭，環境清幽，是本地人散步的去處。",
+   lv:"低",best:"午後時段",rec:[15,17],
+   traffic:[2,2,2,2,3,5,9,14,20,26,32,36,34,30,28,30,28,24,18,13,9,6,4,3],
+   spots:["花園步道","炮台城牆","海景涼亭"],coord:[22.1949,113.5464],img:"assets/sao-francisco-garden.jpg"},
+  {id:"londoner",type:"casino",name:"澳門倫敦人",area:"路氹城",desc:"英倫主題綜合度假村，仿倫敦地標建築，夜晚外牆光影壯觀，與威尼斯人、巴黎人相連。",
+   lv:"高",best:"傍晚入場看夜景，避開週末高峰",rec:[19,22],
+   traffic:[6,5,4,4,5,8,14,22,34,46,56,62,66,70,74,78,82,86,84,78,66,50,34,20],
+   spots:["大笨鐘複製塔","英倫大堂","水晶金殿"],coord:[22.1462,113.5588],img:"assets/londoner-macau.jpg"},
+  {id:"parisian",type:"casino",name:"澳門巴黎人",area:"路氹城",desc:"巴黎主題度假村，地標為按比例複製的巴黎鐵塔，夜間燈光秀耀眼。",
+   lv:"高",best:"入夜後鐵塔亮燈最美",rec:[19,22],
+   traffic:[6,5,4,4,5,8,13,20,32,44,54,60,64,68,72,76,80,84,82,76,64,48,32,18],
+   spots:["巴黎鐵塔觀景台","法式噴泉廣場","購物街拱廊"],coord:[22.1442,113.5598],img:"assets/parisian-macau.jpg"},
+  {id:"galaxy",type:"casino",name:"澳門銀河酒店",area:"路氹城",desc:"大型綜合度假城，鑽石大堂噴泉秀與天浪淘園水上樂園著名。",
+   lv:"高",best:"下午看鑽石大堂噴泉秀，晚上逛購物街",rec:[15,17,19,21],
+   traffic:[5,4,4,4,5,8,14,22,34,46,56,62,64,62,60,64,70,78,82,76,62,46,30,18],
+   spots:["鑽石大堂噴泉","天浪淘園","購物大道"],coord:[22.1492,113.5552],img:"assets/galaxy-macau.jpg"},
+  {id:"broadway",type:"casino",name:"百老匯",area:"路氹城",desc:"與銀河相連的餐飲娛樂街，匯集地道小食與表演，越夜越熱鬧。",
+   lv:"中",best:"晚餐後逛美食街",rec:[18,21],
+   traffic:[3,3,3,3,4,6,10,16,24,32,40,46,48,46,44,48,56,66,72,70,60,44,28,16],
+   spots:["百老匯美食街","街頭表演區","老澳門街景"],coord:[22.1486,113.5568],img:"assets/broadway-macau.jpg"},
+  {id:"wynnpalace",type:"casino",name:"永利皇宮",area:"路氹城",desc:"以藝術與噴泉聞名的豪華度假村，門口音樂噴泉秀與花卉藝術輪展。",
+   lv:"高",best:"晚上看噴泉表演",rec:[19,22],
+   traffic:[5,4,4,4,5,7,12,19,30,42,52,58,62,66,70,74,78,82,80,74,62,46,30,18],
+   spots:["音樂噴泉湖","花藝裝置","觀光纜車"],coord:[22.1430,113.5608],img:"assets/wynn-palace.jpg"},
+  {id:"mgm",type:"casino",name:"美獅美高梅",area:"路氹城",desc:"藝術收藏豐富的現代度假村，獅子雕塑與巨型 LED 屏幕建築外觀搶眼。",
+   lv:"中",best:"晚上看外牆燈效",rec:[19,21],
+   traffic:[4,4,3,3,4,6,10,16,24,34,44,50,54,58,62,66,70,76,78,72,60,44,28,16],
+   spots:["獅子雕塑","藝術展廊","天幕廣場"],coord:[22.1418,113.5592],img:"assets/mgm-cotai.jpg"},
+  {id:"cityofdreams",type:"casino",name:"新濠天地",area:"路氹城",desc:"集合酒店、娛樂與購物的綜合度假村，水上舞台表演《水舞間》著名。",
+   lv:"高",best:"演出場次前入場，晚上最熱鬧",rec:[18,21],
+   traffic:[5,4,4,4,5,8,13,20,30,40,50,56,60,64,68,72,78,84,86,80,68,52,34,20],
+   spots:["水舞間劇場","賭場大堂","購物廊"],coord:[22.1438,113.5572],img:"assets/city-of-dreams.jpg"},
+  {id:"studiocity",type:"casino",name:"新濠影滙",area:"路氹城",desc:"電影主題度假村，地標「8」字摩天輪，娛樂設施豐富。",
+   lv:"高",best:"傍晚坐摩天輪看夜景",rec:[17,20],
+   traffic:[4,4,3,3,4,6,10,16,26,36,46,52,56,60,64,68,74,80,82,76,64,48,30,17],
+   spots:["8字摩天輪","綠地毯大道","電影主題大堂"],coord:[22.1408,113.5605],img:"assets/studio-city.jpg"},
+  {id:"lisboapalace",type:"casino",name:"上葡京",area:"路氹城",desc:"葡式宮殿風格綜合度假村，古典裝潢與現代娛樂並存。",
+   lv:"中",best:"晚上逛，燈光氣派",rec:[19,22],
+   traffic:[4,4,3,3,4,6,10,15,22,30,38,44,48,52,56,60,66,72,74,70,58,42,26,15],
+   spots:["葡式大堂","購物長廊","花園庭園"],coord:[22.1395,113.5635],img:"assets/lisboa-palace.jpg"},
+];
+
+/* 每地點預置評分與示範評論 */
+const SEED_RATE = {paulinho:[4.6,412],senado:[4.5,388],fortress:[4.4,231],domingos:[4.3,176],ama:[4.2,205],guia:[4.7,198],leal:[4.0,122],dpedro:[4.4,98],stow:[4.8,560],chenguangji:[4.6,331],wongchikei:[4.3,214],yishun:[4.2,240],chengchang:[4.5,188],taileiloikei:[4.1,300],venetian:[4.4,520],margaret:[4.7,430],shengji:[4.1,180],rongji:[4.2,210],likangji:[4.5,150],kalirong:[4.3,120],avomi:[4.0,95],tasca:[4.6,260],litoral:[4.4,200],xinhaiji:[4.2,110],laoguangzhou:[4.0,90],beifangguan:[4.0,80],bitao:[4.5,160],lecafe:[4.3,140],churchill:[4.5,180],timhowan:[4.7,380],xinhuacheng:[4.0,75],jiuru:[4.1,70],yaxin:[4.6,230],museum:[4.5,220],"love-lane":[4.6,340],"na-tcha":[4.2,150],mercy:[4.3,120],"ama-square":[4.0,90],"port-office":[4.2,85],zheng:[4.4,140],lilau:[4.3,110],lourenco:[4.3,95],augustine:[4.2,90],joseph:[4.3,100],"guia-fort":[4.5,180],"snow-chapel":[4.4,120],penha:[4.6,170],paixao:[4.4,200],camoes:[4.2,130],"camoes-square":[4.0,70],antonio:[4.1,80],october5:[4.3,160],felicidade:[4.5,280],"horta-square":[4.0,75],"sao-francisco":[4.2,95],londoner:[4.6,420],parisian:[4.7,460],galaxy:[4.5,380],broadway:[4.3,180],wynnpalace:[4.6,340],mgm:[4.4,210],cityofdreams:[4.5,300],studiocity:[4.4,250],lisboapalace:[4.3,160]};
+const SEED_CMT = {
+  paulinho:[["旅人","清晨來幾乎沒人，石階隨便拍！"],["澳門通","傍晚光線打在牌坊上最美，記得看側面。"],["Cindy","人潮集中在中午，早點來準沒錯。"]],
+  senado:[["背包客","碎石地面好好拍，噴水池前夜景一流。"],["阿良","平日早上人不多，咖啡店坐一下很舒服。"]],
+  stow:[["蛋撻控","出爐的葡撻真的驚艷，趁熱吃！"],["旅客K","11點前到幾乎不用排隊，值得早起。"],["Momo","路環人少風景好，買完可以去海邊。"]],
+  chenguangji:[["食客","燒鵝飯配黑椒汁好正，下午開門就去不用排。"],["Tony","晚上要排隊，建議5點到。"],["小美","份量足味道濃，性價比高。"]],
+  venetian:[["旅人","晚上來運河跟天幕超美，適合拍照。"]],
+  timhowan:[["點心控","酥皮叉燒包必點，開門就去不用等。"]],
+  yaxin:[["緬甸菜迷","椰汁雞撈麵濃郁夠味，份量足。"]],
+  museum:[["歷史迷","館內展品豐富，大炮台頂風景好。"]],
+  "love-lane":[["打卡達人","粉彩牆加藍天超好拍，早上人少。"],["情侶","巷子很短但很浪漫，配大三巴一流。"]],
+  "na-tcha":[["文化客","小廟精緻，跟大三巴連遊很方便。"]],
+  mercy:[["建築控","仁慈堂立面典雅，博物館小巧精緻。"]],
+  zheng:[["建築控","鄭家大屋保存得很好，庭院清幽。"]],
+  "guia-fort":[["登山客","日落時分炮台視野極佳。"]],
+  "snow-chapel":[["文物迷","彩繪拱頂保存珍貴，值得一看。"]],
+  penha:[["旅人","主教山俯瞰南灣全景，傍晚最美。"]],
+  paixao:[["文青","斜巷兩旁彩磚樓很好拍，小店也值得逛。"]],
+  felicidade:[["夜遊人","紅窗門樓入夜點燈後很有味道。"]],
+  october5:[["老澳門","十月初五街市井味濃，康公廟前熱鬧。"]],
+  camoes:[["散步客","公園古樹參天，午後很涼快。"]],
+  lilau:[["懷舊客","亞婆井前地很有葡式老城味道。"]],
+  wongchikei:[["麵食家","竹昇麵彈牙，雲吞鮮甜。"],["旅客","午市前到不用排隊。"]],
+  yishun:[["甜品控","雙皮奶滑嫩，午後來一碗正好。"]],
+  margaret:[["甜點控","焦糖蛋撻新鮮出爐最好吃。"]],
+  tasca:[["葡菜迷","烤沙丁魚很地道，環境有氣氛。"]],
+  londoner:[["夜遊人","倫敦人晚上外牆超壯觀，大堂也氣派。"]],
+  parisian:[["情侶","鐵塔燈光秀必看，觀景台俯瞰路氹夜景一流。"]],
+  galaxy:[["家庭客","天浪淘園小朋友玩得開心，鑽石噴泉秀好看。"]],
+  broadway:[["食客","美食街選擇多，邊吃邊看街頭表演。"]],
+  wynnpalace:[["旅人","音樂噴泉每晚準時，花藝展也值得一看。"]],
+  studiocity:[["玩家","8字摩天輪很特別，傍晚去剛好看日落。"]],
+  cityofdreams:[["劇迷","水舞間表演震撼，建議提前訂票。"]],
+  mgm:[["藝術迷","酒店裡的藝術藏品不少，逛一圈像看展覽。"]],
+  lisboapalace:[["建築控","宮殿風格大堂很華麗，拍照好看。"]]
+};
+
+/* ===== 工具 ===== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const busUrl="https://www.dsat.gov.mo/bus/site/index.aspx";
+function openBus(){window.open(busUrl,"_blank","noopener");}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
+function starSVG(filled){
+  const fill=filled?"fill=\"#E8A23A\" stroke=\"#E8A23A\"":"fill=\"#E8E0D0\" stroke=\"#D8CDB8\"";
+  return `<svg viewBox="0 0 24 24" ${fill} stroke-width="1.4" stroke-linejoin="round"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.6l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>`;
+}
+function starsHTML(r,n=5){let s="";for(let i=0;i<n;i++)s+=starSVG(i<Math.round(r));return s;}
+function lvClass(lv){return lv==="高"?"lv-hi":lv==="中"?"lv-mid":"lv-lo";}
+function typeLabel(t){return t==="heritage"?"世遺景點":t==="casino"?"酒店娛樂場":"人氣餐廳";}
+function typeIcon(t){
+  if(t==="heritage")return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/><path d="M10 21v-6h4v6"/></svg>`;
+  if(t==="casino")return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 9.5V20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9.5"/><path d="M3 9.5h18L16 3H8z"/><path d="M12 13v4M10 15h4"/></svg>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 7h16v9H4zM8 20h8M7 3h10l2 4H5z"/><circle cx="8" cy="11.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="11.5" r="1.3" fill="currentColor" stroke="none"/></svg>`;
+}
+
+/* 本地儲存：評分與評論 */
+function rateKey(id){return "mc_rate_"+id;}
+function cmtKey(id){return "mc_cmt_"+id;}
+function getRate(id){const r=JSON.parse(localStorage.getItem(rateKey(id))||"null");return r||{sum:0,n:0};}
+function getAvg(id){const seed=SEED_RATE[id]||[4,0];const r=getRate(id);const tot=seed[0]*seed[1]+r.sum;const cnt=seed[1]+r.n;return cnt?tot/cnt:0;}
+function getCnt(id){const seed=SEED_RATE[id]||[4,0];return seed[1]+getRate(id).n;}
+function getCmt(id){
+  const seed=(SEED_CMT[id]||[]).map(c=>({who:c[0],txt:c[1]}));
+  return seed.concat(JSON.parse(localStorage.getItem(cmtKey(id))||"[]"));
+}
+
+/* ===== 路由 ===== */
+let curTab="all";
+function setTab(t){curTab=t;document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));renderHome();}
+function router(){
+  const h=location.hash.replace(/^#\/?/,"").split("/");
+  const view=h[0]||"home";
+  if(view==="home"){show("view-home");renderHome();setNav("nav-home");}
+  else if(view==="map"){show("view-map");setNav("nav-map");initMap();}
+  else if(view==="place"&&h[1]){show("view-detail");renderDetail(h[1]);}
+  else{show("view-home");renderHome();setNav("nav-home");}
+  window.scrollTo(0,0);
+}
+function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));$("#"+id).classList.add("on");}
+function setNav(id){document.querySelectorAll(".bottom-nav a").forEach(a=>a.classList.remove("on"));$("#"+id).classList.add("on");}
+window.addEventListener("hashchange",router);
+window.addEventListener("load",router);
+
+/* ===== 首頁 ===== */
+function renderHome(){
+  const q=($("#searchInput").value||"").trim().toLowerCase();
+  const list=PLACES.filter(p=>{
+    const okT=curTab==="all"||p.type===curTab;
+    const hay=(p.name+p.area+p.desc+p.type==="food"?"美食":"景點").toLowerCase();
+    return okT&&(q===""||hay.includes(q)||p.name.toLowerCase().includes(q)||p.area.includes(q));
+  });
+  $("#stPlace").textContent=PLACES.length;
+  $("#stHeri").textContent=PLACES.filter(p=>p.type==="heritage").length;
+  $("#stFood").textContent=PLACES.filter(p=>p.type==="food").length;
+  $("#stCasino").textContent=PLACES.filter(p=>p.type==="casino").length;
+  const box=$("#cards");
+  if(!list.length){box.innerHTML=`<div class="empty" style="grid-column:1/-1">找不到符合的地點</div>`;return;}
+  box.innerHTML=list.map(p=>{
+    const avg=getAvg(p.id).toFixed(1);
+    const b=p.type;
+    const icon=typeIcon(p.type);
+    const thumb=p.img?`<img src="${p.img}" alt="${esc(p.name)}" loading="lazy">`:icon;
+    return `<a class="card" href="#/place/${p.id}">
+      <div class="thumb">${thumb}<span class="badge ${b}">${typeLabel(p.type)}</span></div>
+      <div class="body">
+        <div class="name">${p.name}</div>
+        <div class="meta"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5-7-11a7 7 0 0 1 14 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>${p.area}</div>
+        <div class="stars">${starsHTML(avg)}<span style="font-size:11px;color:var(--muted);margin-left:3px">${avg}</span></div>
+        <div class="foot"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/></svg>人潮 ${p.lv} · ${p.best.split("，")[0]}</div>
+      </div>
+    </a>`;
+  }).join("");
+}
+
+/* ===== 詳情頁 ===== */
+let chart=null;
+function renderDetail(id){
+  const p=PLACES.find(x=>x.id===id);if(!p){location.hash="#/home";return;}
+  const avg=getAvg(id).toFixed(1);
+  const icon=typeIcon(p.type);
+  const lvClassN=lvClass(p.lv);
+  $("#view-detail").innerHTML=`
+    <div class="detail-top"${p.img?` style="background:linear-gradient(180deg,rgba(20,38,44,.30),rgba(20,38,44,.68)),url('${p.img}') center/cover no-repeat"`:""}>
+      <button class="btn-back" onclick="history.back()" aria-label="返回"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div style="width:100%">
+        <div style="font-size:11px;opacity:.85;z-index:1">${p.area} · ${typeLabel(p.type)}</div>
+        <h1>${p.name}</h1>
+        <div class="sub">${p.desc}</div>
+      </div>
+    </div>
+    <div class="detail">
+      <div class="row">
+        <div class="stat-box"><div class="k">綜合評分</div><div class="v gold">★ ${avg}</div><div style="font-size:11px;color:var(--muted)">${getCnt(id)} 人評</div></div>
+        <div class="stat-box"><div class="k">人潮程度</div><div class="v ${lvClassN}">${p.lv}</div><div style="font-size:11px;color:var(--muted)">${p.type==="casino"?"客流量":p.type==="heritage"?"觀光客":"排隊情況"}</div></div>
+        <div class="stat-box"><div class="k">推薦前往</div><div class="v" style="font-size:13px">${p.rec.map(h=>h+"時").join("、")}</div></div>
+      </div>
+
+      <div class="rec">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <div><div class="t">最佳到訪時機</div><div class="d">${p.best}</div></div>
+      </div>
+
+      <div class="chart-box">
+        <div class="ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h3l2.5-6 3 12 2.5-8 2 2h5"/></svg>24 小時人潮曲線（參考）</div>
+        <div id="trafficChart"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">數值為相對人潮指數（0–100），綠色區間為推薦到訪時段</div>
+      </div>
+
+      <div class="h2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 4v8h14v-8l-5-4V3M8 21h8"/></svg>網紅打卡點</div>
+      <div class="spots">${p.spots.map(s=>`<div class="spot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5-7-11a7 7 0 0 1 14 0c0 6-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span class="n">${esc(s)}</span></div>`).join("")}</div>
+
+      <button class="btn-bus" style="margin-top:16px;width:100%;justify-content:center;background:var(--blue);color:#fff;box-shadow:none" onclick="openBus()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M8 21h8M9 17v4M15 17v4M5 11h14"/></svg>
+        查看巴士報站（網頁版）
+      </button>
+
+      <div class="h2" style="margin-top:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.5L18 9l-4.4 1.5L12 15l-1.6-4.5L6 9l4.4-1.5z"/></svg>為此地點評分</div>
+      <div class="rate-area">
+        <div class="hint">你覺得這裡值不值得去？（1 星最低，5 星最高）</div>
+        <div class="rate-stars" id="rateStars"></div>
+        <div class="rate-avg">目前平均 <b>${avg}</b> / 5（${getCnt(id)} 人評分）</div>
+      </div>
+
+      <div class="h2" style="margin-top:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H5l3-3a8 8 0 1 1 13-5z"/></svg>評論區</div>
+      <div class="comments" id="cmtList"></div>
+      <form class="cmt-form" onsubmit="submitCmt(event,'${p.id}')">
+        <input id="cmtName" placeholder="你的暱稱" required maxlength="12">
+        <textarea id="cmtText" placeholder="分享你的到訪體驗、排隊情況或拍照心得…" required maxlength="200"></textarea>
+        <button class="sub" type="submit">發布評論</button>
+      </form>
+    </div>`;
+
+  buildRateStars(id);
+  renderCmt(id);
+  drawChart(p);
+  window.scrollTo(0,0);
+}
+
+/* 評分互動 */
+let myPick=0;
+function buildRateStars(id){
+  const box=$("#rateStars");myPick=getRate(id).my||0;box.innerHTML="";
+  for(let i=1;i<=5;i++)box.appendChild(starButton(i,myPick>=i));
+}
+function starButton(i,on){
+  const b=document.createElement("button");
+  b.className="st";b.type="button";b.setAttribute("aria-label",i+"星");
+  b.innerHTML=starSVG(on);
+  b.onmouseenter=()=>preview(i);
+  b.onmouseleave=()=>restore();
+  b.onclick=()=>pick(i);
+  return b;
+}
+function preview(i){document.querySelectorAll("#rateStars .st").forEach((s,k)=>s.innerHTML=starSVG(k<i));}
+function restore(){document.querySelectorAll("#rateStars .st").forEach((s,k)=>s.innerHTML=starSVG(k<myPick));}
+function pick(i){
+  const id=curId();if(!id)return;
+  myPick=i;const r=getRate(id);r.sum+=i;r.n+=1;r.my=i;
+  localStorage.setItem(rateKey(id),JSON.stringify(r));
+  buildRateStars(id);
+  toast("已記錄你的評分，感謝回饋");
+  const avg=getAvg(id).toFixed(1);
+  const av=document.querySelector(".rate-avg");if(av)av.innerHTML=`目前平均 <b>${avg}</b> / 5（${getCnt(id)} 人評分）`;
+  const sv=document.querySelector(".stat-box .v.gold");if(sv)sv.textContent="★ "+avg;
+}
+let _curId="";
+function curId(){const m=location.hash.match(/place\/([\w-]+)/);return m?m[1]:"";}
+
+/* 評論 */
+function submitCmt(e,id){
+  e.preventDefault();
+  const n=$("#cmtName").value.trim(),t=$("#cmtText").value.trim();
+  if(!n||!t)return;
+  const list=JSON.parse(localStorage.getItem(cmtKey(id))||"[]");
+  list.unshift({who:n,txt:t,when:new Date().toLocaleString("zh-Hant",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})});
+  localStorage.setItem(cmtKey(id),JSON.stringify(list));
+  e.target.reset();
+  renderCmt(id);
+  toast("評論已發布");
+}
+function renderCmt(id){
+  const list=getCmt(id);const box=$("#cmtList");
+  if(!list.length){box.innerHTML=`<div class="empty">還沒有評論，來搶頭香吧</div>`;return;}
+  box.innerHTML=list.map(c=>`
+    <div class="cmt">
+      <div class="h"><span class="who">${esc(c.who)}</span></div>
+      <div class="txt">${esc(c.txt)}</div>
+      ${c.when?`<div class="when">${esc(c.when)}</div>`:""}
+    </div>`).join("");
+}
+
+/* 人潮圖表 */
+function drawChart(p){
+  const hours=p.traffic.map((v,i)=>({v,h:i}));
+  const rec=Array.from({length:24},(_,h)=>p.rec.some((r,i)=>i%2===0&&h>=r&&h<r+2)?0:30);
+  if(chart)chart.dispose();
+  chart=echarts.init($("#trafficChart"));
+  chart.setOption({
+    grid:{left:34,right:14,top:16,bottom:26},
+    tooltip:{trigger:"axis",formatter:params=>params[0].axisValue+"時 · 人潮指數 "+(params[0].value-30),backgroundColor:"rgba(31,78,95,.95)",textStyle:{color:"#fff",fontSize:12}},
+    xAxis:{type:"category",data:Array.from({length:24},(_,h)=>h+"時"),axisLine:{lineStyle:{color:"#D8CDB8"}},axisLabel:{color:"#6E7A74",fontSize:10,interval:2}},
+    yAxis:{type:"value",show:false,min:0,max:100},
+    series:[
+      {name:"推薦",type:"bar",data:rec,barWidth:"70%",itemStyle:{color:"rgba(78,125,90,.35)",borderRadius:[0,0,4,4]},stack:"a"},
+      {name:"人潮",type:"bar",data:p.traffic,barWidth:"70%",itemStyle:{color:"#2E6E8E",borderRadius:[4,4,0,0]},stack:"a"}
+    ]
+  });
+}
+
+/* ===== 地圖 ===== */
+let mapInit=false,map=null,tileIdx=0;
+const TILE_PROVIDERS=[
+  {url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",attr:'&copy; <a href="https://www.esri.com">Esri</a>'},
+  {url:"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",sub:"abc",attr:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'},
+  {url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",sub:"abcd",attr:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
+  {url:"https://tile.openfreemap.org/styles/liberty/{z}/{x}/{y}.png",attr:'&copy; OpenStreetMap contributors &copy; OpenFreeMap'}
+];
+function loadTiles(){
+  const p=TILE_PROVIDERS[tileIdx];
+  const layer=L.tileLayer(p.url,{maxZoom:19,subdomains:p.sub||"abc",attribution:p.attr,
+    errorTileUrl:"data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="});
+  layer.on("tileerror",()=>{ if(tileIdx<TILE_PROVIDERS.length-1){tileIdx++;map.removeLayer(layer);loadTiles();} });
+  layer.addTo(map);
+  return layer;
+}
+function initMap(){
+  if(mapInit)return;
+  map=L.map("map").setView([22.18,113.543],13);
+  loadTiles();
+  const colors={heritage:"#2E6E8E",food:"#C4572E",casino:"#7A5BA0"};
+  PLACES.forEach(p=>{
+    const pin=L.divIcon({className:"site-pin",html:`<div class="pin" style="background:${colors[p.type]}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>`,iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-26]});
+    L.marker(p.coord,{icon:pin}).addTo(map)
+      .bindPopup(`<div class="pn">${p.name}</div><div class="pm">${p.area} · ${typeLabel(p.type)} · 人潮 ${p.lv}</div><a href="#/place/${p.id}">查看詳情 →</a>`);
+  });
+  mapInit=true;
+}
+</script>
+</body>
+</html>
